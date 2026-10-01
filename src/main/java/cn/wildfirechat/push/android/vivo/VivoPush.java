@@ -45,11 +45,19 @@ public class VivoPush {
         String regId = pushMessage.getDeviceToken();
         // 添加regId有效性检查
         if (!isValidVivoRegId(regId)) {
-            LOG.error("Invalid vivo regId: {}", regId);
+            if (pushMessage.isMatrixDataOnly()) {
+                LOG.error("Invalid vivo regId for Matrix push");
+            } else {
+                LOG.error("Invalid vivo regId: {}", regId);
+            }
             return;
         }
 
-        LOG.debug("Sending Vivo push with regId: {}", regId);
+        if (pushMessage.isMatrixDataOnly()) {
+            LOG.debug("Sending Matrix fallback notification through vivo");
+        } else {
+            LOG.debug("Sending Vivo push with regId: {}", regId);
+        }
 
         // 升级点1：使用新的认证机制
         if (tokenExpiredTime <= System.currentTimeMillis()) {

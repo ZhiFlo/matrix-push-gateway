@@ -62,7 +62,7 @@ public class MatrixPushController {
             try {
                 androidPushService.push(pushMessage);
             } catch (RuntimeException e) {
-                LOG.error("Unable to enqueue Matrix push for provider key {}", device.pushkey, e);
+                LOG.error("Unable to enqueue Matrix push for provider type {}", key.pushType, e);
             }
         }
 
