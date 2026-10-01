@@ -78,7 +78,7 @@
             <artifactId>vPush-server-sdk</artifactId>
             <version>3.3</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/libs/vPush-server-sdk-3.3.jar
+            <systemPath>${project.basedir}/src/main/libs/vpush-server-sdk-3.3.jar
             </systemPath>
         </dependency>
 
