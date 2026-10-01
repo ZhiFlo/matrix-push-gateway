@@ -9,8 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  issues: write
+  contents: read
 
 concurrency:
   group: matrix-push-upstream-sync
@@ -27,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: master
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Configure git identity
         run: |
@@ -43,7 +42,6 @@ jobs:
           git remote remove upstream 2>/dev/null || true
           git remote add upstream https://github.com/wildfirechat/push_server.git
           git fetch --prune upstream master
-
           before="$(git rev-parse HEAD)"
           if git merge --no-edit upstream/master; then
             after="$(git rev-parse HEAD)"
@@ -63,37 +61,26 @@ jobs:
 
       - name: Report upstream merge conflict
         if: steps.merge.outputs.conflict == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const title = "[upstream-sync] push_server merge conflict";
-            const conflicts = process.env.CONFLICTS || "(unable to enumerate)";
-            const body = [
-              "Automatic merge from `wildfirechat/push_server:master` failed.",
-              "",
-              "Conflicting paths:",
-              "```",
-              conflicts.split(",").join("\n"),
-              "```",
-              "",
-              "The fork branch was left unchanged."
-            ].join("\n");
-            const { owner, repo } = context.repo;
-            const issues = await github.rest.issues.listForRepo({ owner, repo, state: "open", per_page: 100 });
-            const existing = issues.data.find(i => i.title === title);
-            if (existing) {
-              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
-            } else {
-              await github.rest.issues.create({ owner, repo, title, body });
-            }
-        env:
-          CONFLICTS: ${{ steps.merge.outputs.conflicts }}
+        shell: bash
+        run: |
+          echo "::error title=push_server upstream merge conflict::${{ steps.merge.outputs.conflicts }}"
+          {
+            echo "## push_server upstream merge conflict"
+            echo
+            echo "Automatic merge from wildfirechat/push_server:master failed."
+            echo
+            echo "Conflicting paths:"
+            echo "${{ steps.merge.outputs.conflicts }}" | tr ',' '\n'
+            echo
+            echo "The fork branch was left unchanged."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Stop on merge conflict
         if: steps.merge.outputs.conflict == 'true'
         run: exit 1
 
       - name: Set up JDK 8
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || steps.merge.outputs.changed == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -101,6 +88,7 @@ jobs:
           cache: maven
 
       - name: Build and test gateway
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || steps.merge.outputs.changed == 'true'
         shell: bash
         run: |
           test -x ./mvnw || chmod +x ./mvnw
@@ -108,6 +96,7 @@ jobs:
 
       - name: Capture build metadata
         id: meta
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || steps.merge.outputs.changed == 'true'
         shell: bash
         run: |
           echo "sha=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
@@ -115,9 +104,22 @@ jobs:
 
       - name: Push verified upstream merge
         if: steps.merge.outputs.changed == 'true'
-        run: git push origin HEAD:master
+        shell: bash
+        env:
+          SYNC_SSH_KEY: ${{ secrets.SYNC_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SYNC_SSH_KEY" || { echo "SYNC_SSH_KEY secret is missing"; exit 1; }
+          key_dir="$RUNNER_TEMP/zhiflo-sync-ssh"
+          install -d -m 700 "$key_dir"
+          printf '%s\n' "$SYNC_SSH_KEY" > "$key_dir/id_ed25519"
+          chmod 600 "$key_dir/id_ed25519"
+          ssh-keyscan -t rsa,ecdsa,ed25519 github.com > "$key_dir/known_hosts"
+          git remote set-url origin "git@github.com:${GITHUB_REPOSITORY}.git"
+          GIT_SSH_COMMAND="ssh -i $key_dir/id_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=$key_dir/known_hosts" git push origin HEAD:master
 
       - name: Upload gateway JAR
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || steps.merge.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: matrix-push-gateway-${{ steps.meta.outputs.sha }}
