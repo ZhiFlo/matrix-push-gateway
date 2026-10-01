@@ -13,12 +13,12 @@ permissions:
 
 concurrency:
   group: matrix-push-upstream-sync
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   sync-build:
     if: github.repository == 'ZhiFlo/matrix-push-gateway'
-    runs-on: [self-hosted, linux, x64, push-build]
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - name: Checkout fork
