@@ -31,6 +31,9 @@ public class XiaomiPush {
     public void push(PushMessage pushMessage) throws Exception {
         if (StringUtils.isEmpty(mConfig.getAppSecret())) {
             LOG.info("XiaomiPush appSecret is not configured, skip push");
+            if (pushMessage.isMatrixDataOnly()) {
+                throw new IllegalStateException("Xiaomi push provider is not configured");
+            }
             return;
         }
         Constants.useOfficial();

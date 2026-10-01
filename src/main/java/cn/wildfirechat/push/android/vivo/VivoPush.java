@@ -40,6 +40,9 @@ public class VivoPush {
         if (StringUtils.isEmpty(mConfig.getAppId()) || "0".equals(mConfig.getAppId())
                 || StringUtils.isEmpty(mConfig.getAppKey()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
             LOG.info("VivoPush config is not complete, skip push");
+            if (pushMessage.isMatrixDataOnly()) {
+                throw new IllegalStateException("vivo push provider is not configured");
+            }
             return;
         }
         String regId = pushMessage.getDeviceToken();
@@ -47,6 +50,7 @@ public class VivoPush {
         if (!isValidVivoRegId(regId)) {
             if (pushMessage.isMatrixDataOnly()) {
                 LOG.error("Invalid vivo regId for Matrix push");
+                throw new IllegalArgumentException("Invalid vivo registration id");
             } else {
                 LOG.error("Invalid vivo regId: {}", regId);
             }
@@ -62,6 +66,9 @@ public class VivoPush {
         // 升级点1：使用新的认证机制
         if (tokenExpiredTime <= System.currentTimeMillis()) {
             refreshToken(); // 内部需要实现getToken逻辑
+            if (StringUtils.isEmpty(authToken) && pushMessage.isMatrixDataOnly()) {
+                throw new IllegalStateException("vivo push authentication failed");
+            }
         }
 
         String[] arr = Utility.getPushTitleAndContent(pushMessage);

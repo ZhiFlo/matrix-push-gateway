@@ -86,6 +86,9 @@ public class HMSPush {
     public void push(PushMessage pushMessage) throws Exception {
         if (StringUtils.isEmpty(mConfig.getAppId()) || "0".equals(mConfig.getAppId()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
             LOG.info("HMSPush config is not complete, skip push");
+            if (pushMessage.isMatrixDataOnly()) {
+                throw new IllegalStateException("HMS push provider is not configured");
+            }
             return;
         }
         // 检查token是否有效，无效则刷新
@@ -94,6 +97,9 @@ public class HMSPush {
                 refreshToken();
             } catch (IOException e) {
                 LOG.error("Failed to refresh hms token", e);
+                if (pushMessage.isMatrixDataOnly()) {
+                    throw new IllegalStateException("HMS push authentication failed", e);
+                }
                 return; // token刷新失败，直接返回
             }
         }

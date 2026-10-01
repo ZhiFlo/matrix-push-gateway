@@ -46,6 +46,9 @@ public class OppoPush {
     public void push(PushMessage pushMessage) throws Exception {
         if (mSender == null || StringUtils.isEmpty(mConfig.getAppKey()) || StringUtils.isEmpty(mConfig.getAppSecret())) {
             LOG.info("OppoPush is not configured, skip push");
+            if (pushMessage.isMatrixDataOnly()) {
+                throw new IllegalStateException("OPPO push provider is not configured");
+            }
             return;
         }
 
