@@ -24,13 +24,22 @@ public class PushRecordService {
         try {
             PushRecord record = new PushRecord();
             record.setPlatform(platform);
-            record.setUserId(pushMessage.userId);
-            record.setDeviceToken(pushMessage.getDeviceToken());
-            String content = pushMessage.getPushContent();
-            if (content != null && content.length() > 2000) {
-                content = content.substring(0, 1997) + "...";
+            if (pushMessage.isMatrixDataOnly()) {
+                // Matrix payloads contain per-session routing data and vendor device
+                // tokens. The operational record does not need any of that data.
+                record.setUserId(null);
+                record.setDeviceToken(null);
+                record.setPushContent(null);
+                errorMsg = success ? null : "Matrix provider push failed";
+            } else {
+                record.setUserId(pushMessage.userId);
+                record.setDeviceToken(pushMessage.getDeviceToken());
+                String content = pushMessage.getPushContent();
+                if (content != null && content.length() > 2000) {
+                    content = content.substring(0, 1997) + "...";
+                }
+                record.setPushContent(content);
             }
-            record.setPushContent(content);
             record.setPushType(String.valueOf(pushMessage.getPushType()));
             record.setSuccess(success);
             if (errorMsg != null && errorMsg.length() > 2000) {

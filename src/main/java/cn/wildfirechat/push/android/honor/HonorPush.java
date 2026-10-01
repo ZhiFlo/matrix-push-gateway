@@ -137,8 +137,14 @@ public class HonorPush {
 //
 //        LOG.info("send push to Honor {}", payload);
 
-        RequestBody alertPayload = RequestBody.buildRequestBody(pushMessage, mConfig.getAppId());
-        LOG.info("Push message {}", alertPayload);
+        RequestBody alertPayload = pushMessage.isMatrixDataOnly()
+                ? RequestBody.buildDataRequestBody(pushMessage)
+                : RequestBody.buildRequestBody(pushMessage, mConfig.getAppId());
+        if (pushMessage.isMatrixDataOnly()) {
+            LOG.debug("Sending Matrix data push through Honor");
+        } else {
+            LOG.info("Push message {}", alertPayload);
+        }
         String postUrl = String.format(apiUrl, mConfig.getAppId());
         String response = httpPost(postUrl, accessToken, alertPayload.toString(), 8000, 8000);
         LOG.info("Push to {} response {}", pushMessage.getDeviceToken(), response);

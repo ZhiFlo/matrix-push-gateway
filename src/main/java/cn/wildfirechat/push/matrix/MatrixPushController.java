@@ -49,6 +49,7 @@ public class MatrixPushController {
             pushMessage.deviceToken = key.token;
             pushMessage.packageName = config.getPackageName();
             pushMessage.pushMessageType = PushMessageType.PUSH_MESSAGE_TYPE_NORMAL;
+            pushMessage.matrixDataOnly = true;
             pushMessage.senderName = config.getTitle();
             pushMessage.pushContent = config.getBody();
             pushMessage.isHiddenDetail = false;

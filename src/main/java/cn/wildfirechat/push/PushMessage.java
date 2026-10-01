@@ -23,6 +23,11 @@ public class PushMessage {
     public int pushType;
     public String pushContent;
     public String pushData;
+    /**
+     * Internal routing hint for Matrix pushes. Transient keeps it out of
+     * provider payloads and logs serialized with Gson.
+     */
+    public transient boolean matrixDataOnly;
     public int unReceivedMsg;
     public int mentionedType;
     public String packageName;
@@ -130,6 +135,14 @@ public class PushMessage {
 
     public void setPushData(String pushData) {
         this.pushData = pushData;
+    }
+
+    public boolean isMatrixDataOnly() {
+        return matrixDataOnly;
+    }
+
+    public void setMatrixDataOnly(boolean matrixDataOnly) {
+        this.matrixDataOnly = matrixDataOnly;
     }
 
     public int getUnReceivedMsg() {

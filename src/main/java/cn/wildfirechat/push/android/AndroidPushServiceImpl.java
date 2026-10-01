@@ -75,7 +75,11 @@ public class AndroidPushServiceImpl implements AndroidPushService {
 
     @Override
     public Object push(PushMessage pushMessage) {
-        LOG.info("Android push {}", new Gson().toJson(pushMessage));
+        if (pushMessage.isMatrixDataOnly()) {
+            LOG.info("Android Matrix push type={} unread={}", pushMessage.getPushType(), pushMessage.getUnReceivedMsg());
+        } else {
+            LOG.info("Android push {}", new Gson().toJson(pushMessage));
+        }
         if (Utility.filterPush(pushMessage)) {
             LOG.info("canceled");
             return "Canceled";

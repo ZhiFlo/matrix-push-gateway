@@ -72,5 +72,23 @@ public class HMSPushPayload {
 
         return alertPayload;
     }
+
+    public static HMSPushPayload buildDataPayload(PushMessage pushMessage) {
+        HMSPushMessage hmsMessage = new HMSPushMessage();
+        hmsMessage.data = pushMessage.pushData;
+
+        List<String> tokens = new ArrayList<>();
+        tokens.add(pushMessage.deviceToken);
+        hmsMessage.token = tokens;
+
+        hmsMessage.android = new HMSPushAndroidInfo();
+        hmsMessage.android.ttl = "600s";
+        hmsMessage.android.urgency = "HIGH";
+
+        HMSPushPayload payload = new HMSPushPayload();
+        payload.validate_only = false;
+        payload.message = hmsMessage;
+        return payload;
+    }
 }
 

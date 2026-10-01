@@ -66,4 +66,14 @@ public class RequestBody {
         requestBody.android.notification.badge.setNum = badgeNum;
         return requestBody;
     }
+
+    public static RequestBody buildDataRequestBody(PushMessage pushMessage) {
+        RequestBody requestBody = new RequestBody();
+        requestBody.data = pushMessage.pushData;
+
+        List<String> tokens = new ArrayList<>();
+        tokens.add(pushMessage.deviceToken);
+        requestBody.token = tokens;
+        return requestBody;
+    }
 }
