@@ -56,7 +56,7 @@ public class MatrixPushController {
             pushMessage.unReceivedMsg = request.notification.counts == null
                     ? 0
                     : request.notification.counts.unread;
-            pushMessage.pushData = createPushData(request.notification);
+            pushMessage.pushData = createPushData(request.notification, device);
 
             try {
                 androidPushService.push(pushMessage);
@@ -68,7 +68,7 @@ public class MatrixPushController {
         return response;
     }
 
-    private String createPushData(MatrixPushRequest.Notification notification) {
+    private String createPushData(MatrixPushRequest.Notification notification, MatrixPushRequest.Device device) {
         Map<String, String> data = new LinkedHashMap<>();
         data.put("kind", "matrix");
         if (notification.event_id != null) {
@@ -77,6 +77,36 @@ public class MatrixPushController {
         if (notification.room_id != null) {
             data.put("room_id", notification.room_id);
         }
+        if (notification.counts != null) {
+            data.put("unread", String.valueOf(notification.counts.unread));
+        }
+        String clientSecret = extractClientSecret(device);
+        if (clientSecret != null) {
+            data.put("cs", clientSecret);
+        }
         return new Gson().toJson(data);
+    }
+
+    private String extractClientSecret(MatrixPushRequest.Device device) {
+        if (device == null || device.data == null) {
+            return null;
+        }
+        Object defaultPayload = device.data.get("default_payload");
+        if (defaultPayload instanceof Map) {
+            Object clientSecret = ((Map<?, ?>) defaultPayload).get("cs");
+            return clientSecret == null ? null : String.valueOf(clientSecret);
+        }
+        if (defaultPayload instanceof String) {
+            try {
+                Object parsed = new Gson().fromJson((String) defaultPayload, Object.class);
+                if (parsed instanceof Map) {
+                    Object clientSecret = ((Map<?, ?>) parsed).get("cs");
+                    return clientSecret == null ? null : String.valueOf(clientSecret);
+                }
+            } catch (RuntimeException e) {
+                LOG.warn("Invalid Matrix default_payload JSON");
+            }
+        }
+        return null;
     }
 }
