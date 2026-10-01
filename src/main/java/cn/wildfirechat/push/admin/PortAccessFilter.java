@@ -28,6 +28,8 @@ public class PortAccessFilter extends OncePerRequestFilter {
         PUSH_PATHS.add("/android/push");
         PUSH_PATHS.add("/ios/push");
         PUSH_PATHS.add("/harmony/push");
+        PUSH_PATHS.add("/_matrix/push/v1/notify");
+        PUSH_PATHS.add("/healthz");
     }
 
     @Override
