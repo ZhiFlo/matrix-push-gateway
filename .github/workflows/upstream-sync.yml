@@ -91,8 +91,7 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || steps.merge.outputs.changed == 'true'
         shell: bash
         run: |
-          test -x ./mvnw || chmod +x ./mvnw
-          ./mvnw -B clean package
+          mvn -B clean package
 
       - name: Capture build metadata
         id: meta
