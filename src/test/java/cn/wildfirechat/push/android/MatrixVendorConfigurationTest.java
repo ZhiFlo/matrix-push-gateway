@@ -14,6 +14,7 @@ import cn.wildfirechat.push.android.xiaomi.XiaomiPush;
 import org.junit.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class MatrixVendorConfigurationTest {
@@ -50,6 +51,27 @@ public class MatrixVendorConfigurationTest {
         VivoPush push = new VivoPush();
         ReflectionTestUtils.setField(push, "mConfig", new VivoConfig());
         expectConfigurationFailure(() -> push.push(matrixMessage()));
+    }
+
+    @Test
+    public void matrixAndroidServicePropagatesProviderFailureSynchronously() {
+        HMSPush hmsPush = new HMSPush();
+        ReflectionTestUtils.setField(hmsPush, "mConfig", new HMSConfig());
+
+        AndroidPushServiceImpl service = new AndroidPushServiceImpl();
+        ReflectionTestUtils.setField(service, "hmsPush", hmsPush);
+
+        PushMessage message = matrixMessage();
+        message.setPushType(AndroidPushType.ANDROID_PUSH_TYPE_HUAWEI);
+
+        try {
+            service.push(message);
+            fail("Expected provider failure to be propagated synchronously");
+        } catch (IllegalStateException expected) {
+            assertEquals("HMS push provider is not configured", expected.getMessage());
+        } finally {
+            service.shutdown();
+        }
     }
 
     private PushMessage matrixMessage() {

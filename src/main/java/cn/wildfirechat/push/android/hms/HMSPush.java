@@ -153,7 +153,11 @@ public class HMSPush {
         }
         String postUrl = String.format(apiUrl, mConfig.getAppId());
         String response = httpPost(postUrl, accessToken, alertPayload.toString(), 8000, 8000);
-        LOG.info("Push to {} response {}", pushMessage.getDeviceToken(), response);
+        if (pushMessage.isMatrixDataOnly()) {
+            LOG.info("HMS Matrix push response {}", response);
+        } else {
+            LOG.info("Push to {} response {}", pushMessage.getDeviceToken(), response);
+        }
         JSONObject respObj = JSONObject.parseObject(response);
         if (respObj != null && respObj.containsKey("code") && !"80000000".equals(respObj.getString("code"))) {
             throw new RuntimeException("HMS push failed: " + respObj.getString("code") + " - " + respObj.getString("msg"));

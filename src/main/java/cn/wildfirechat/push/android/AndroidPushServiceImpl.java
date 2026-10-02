@@ -94,6 +94,30 @@ public class AndroidPushServiceImpl implements AndroidPushService {
             statisticsService.recordPush(platform);
         }
 
+        if (pushMessage.isMatrixDataOnly()) {
+            try {
+                dispatchPush(pushMessage);
+                if (statisticsService != null) {
+                    statisticsService.recordSuccess(platform);
+                }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, true, null);
+                }
+                return "ok";
+            } catch (Exception e) {
+                if (statisticsService != null) {
+                    statisticsService.recordFail(platform);
+                }
+                if (pushRecordService != null) {
+                    pushRecordService.saveRecord(pushMessage, platform, false, e.getMessage());
+                }
+                if (e instanceof RuntimeException) {
+                    throw (RuntimeException) e;
+                }
+                throw new RuntimeException("Matrix push failed", e);
+            }
+        }
+
         final long start = System.currentTimeMillis();
         executorService.execute(() -> {
             long now = System.currentTimeMillis();
@@ -103,35 +127,7 @@ public class AndroidPushServiceImpl implements AndroidPushService {
             }
 
             try {
-                switch (pushMessage.getPushType()) {
-                    case AndroidPushType.ANDROID_PUSH_TYPE_XIAOMI:
-                        xiaomiPush.push(pushMessage);
-                        break;
-                    case AndroidPushType.ANDROID_PUSH_TYPE_HUAWEI:
-                        hmsPush.push(pushMessage);
-                        break;
-                    case AndroidPushType.ANDROID_PUSH_TYPE_VIVO:
-                        vivoPush.push(pushMessage);
-                        break;
-                    case AndroidPushType.ANDROID_PUSH_TYPE_OPPO:
-                        oppoPush.push(pushMessage);
-                        break;
-                    case AndroidPushType.ANDROID_PUSH_TYPE_FCM:
-                        fcmPush.push(pushMessage);
-                        break;
-                    case AndroidPushType.ANDROID_PUSH_TYPE_GETUI:
-                        getuiPush.push(pushMessage, true);
-                        break;
-                    case AndroidPushType.ANDROID_PUSH_TYPE_HONOR:
-                        honorPush.push(pushMessage);
-                        break;
-                    case AndroidPushType.PUSH_TYPE_UNIPUSH_V2:
-                        uniPush.push(pushMessage);
-                        break;
-                    default:
-                        LOG.info("unknown push type");
-                        break;
-                }
+                dispatchPush(pushMessage);
                 if (statisticsService != null) {
                     statisticsService.recordSuccess(platform);
                 }
@@ -162,34 +158,7 @@ public class AndroidPushServiceImpl implements AndroidPushService {
             statisticsService.recordPush(platform);
         }
         try {
-            switch (pushMessage.getPushType()) {
-                case AndroidPushType.ANDROID_PUSH_TYPE_XIAOMI:
-                    xiaomiPush.push(pushMessage);
-                    break;
-                case AndroidPushType.ANDROID_PUSH_TYPE_HUAWEI:
-                    hmsPush.push(pushMessage);
-                    break;
-                case AndroidPushType.ANDROID_PUSH_TYPE_VIVO:
-                    vivoPush.push(pushMessage);
-                    break;
-                case AndroidPushType.ANDROID_PUSH_TYPE_OPPO:
-                    oppoPush.push(pushMessage);
-                    break;
-                case AndroidPushType.ANDROID_PUSH_TYPE_FCM:
-                    fcmPush.push(pushMessage);
-                    break;
-                case AndroidPushType.ANDROID_PUSH_TYPE_GETUI:
-                    getuiPush.push(pushMessage, true);
-                    break;
-                case AndroidPushType.ANDROID_PUSH_TYPE_HONOR:
-                    honorPush.push(pushMessage);
-                    break;
-                case AndroidPushType.PUSH_TYPE_UNIPUSH_V2:
-                    uniPush.push(pushMessage);
-                    break;
-                default:
-                    throw new Exception("未知的推送类型: " + pushMessage.getPushType());
-            }
+            dispatchPush(pushMessage);
             if (statisticsService != null) {
                 statisticsService.recordSuccess(platform);
             }
@@ -204,6 +173,37 @@ public class AndroidPushServiceImpl implements AndroidPushService {
                 pushRecordService.saveRecord(pushMessage, platform, false, e.getMessage());
             }
             throw e;
+        }
+    }
+
+    private void dispatchPush(PushMessage pushMessage) throws Exception {
+        switch (pushMessage.getPushType()) {
+            case AndroidPushType.ANDROID_PUSH_TYPE_XIAOMI:
+                xiaomiPush.push(pushMessage);
+                break;
+            case AndroidPushType.ANDROID_PUSH_TYPE_HUAWEI:
+                hmsPush.push(pushMessage);
+                break;
+            case AndroidPushType.ANDROID_PUSH_TYPE_VIVO:
+                vivoPush.push(pushMessage);
+                break;
+            case AndroidPushType.ANDROID_PUSH_TYPE_OPPO:
+                oppoPush.push(pushMessage);
+                break;
+            case AndroidPushType.ANDROID_PUSH_TYPE_FCM:
+                fcmPush.push(pushMessage);
+                break;
+            case AndroidPushType.ANDROID_PUSH_TYPE_GETUI:
+                getuiPush.push(pushMessage, true);
+                break;
+            case AndroidPushType.ANDROID_PUSH_TYPE_HONOR:
+                honorPush.push(pushMessage);
+                break;
+            case AndroidPushType.PUSH_TYPE_UNIPUSH_V2:
+                uniPush.push(pushMessage);
+                break;
+            default:
+                throw new Exception("未知的推送类型: " + pushMessage.getPushType());
         }
     }
 
