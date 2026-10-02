@@ -26,6 +26,9 @@ public class MatrixPushController {
     @Autowired
     private MatrixPushConfig config;
 
+    @Autowired
+    private MatrixPushDeduplicator deduplicator;
+
     @PostMapping(value = "/_matrix/push/v1/notify", produces = "application/json;charset=UTF-8")
     public MatrixPushResponse notify(@RequestBody MatrixPushRequest request) {
         MatrixPushResponse response = new MatrixPushResponse();
@@ -62,7 +65,15 @@ public class MatrixPushController {
             pushMessage.pushData = createPushData(request.notification, device);
 
             try {
-                androidPushService.push(pushMessage);
+                boolean delivered = deduplicator.deliverIfNew(
+                        request.notification.event_id,
+                        key.pushType,
+                        key.token,
+                        () -> androidPushService.push(pushMessage)
+                );
+                if (!delivered) {
+                    LOG.debug("Suppressing duplicate Matrix push for provider type {}", key.pushType);
+                }
             } catch (RuntimeException e) {
                 LOG.error("Unable to enqueue Matrix push for provider type {}", key.pushType, e);
                 throw new ResponseStatusException(

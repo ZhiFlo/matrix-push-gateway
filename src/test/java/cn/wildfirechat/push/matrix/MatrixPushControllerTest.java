@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,6 +42,7 @@ public class MatrixPushControllerTest {
         config.setBody("You have a new message");
         ReflectionTestUtils.setField(controller, "androidPushService", pushService);
         ReflectionTestUtils.setField(controller, "config", config);
+        ReflectionTestUtils.setField(controller, "deduplicator", new MatrixPushDeduplicator());
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -122,6 +124,47 @@ public class MatrixPushControllerTest {
         assertEquals("honor-token", message.deviceToken);
         JsonObject payload = new JsonParser().parse(message.pushData).getAsJsonObject();
         assertEquals("string-secret", payload.get("cs").getAsString());
+    }
+
+    @Test
+    public void duplicateEventForSameDeviceIsSuppressed() {
+        MatrixPushRequest.Device device = new MatrixPushRequest.Device();
+        device.pushkey = "xiaomi:vendor-token";
+
+        controller.notify(createRequest(device));
+        controller.notify(createRequest(device));
+
+        assertEquals(1, pushService.messages.size());
+    }
+
+    @Test
+    public void duplicateEventForDifferentDevicesIsDeliveredToEachDevice() {
+        MatrixPushRequest.Device first = new MatrixPushRequest.Device();
+        first.pushkey = "xiaomi:first-token";
+        MatrixPushRequest.Device second = new MatrixPushRequest.Device();
+        second.pushkey = "xiaomi:second-token";
+
+        controller.notify(createRequest(first));
+        controller.notify(createRequest(second));
+
+        assertEquals(2, pushService.messages.size());
+    }
+
+    @Test
+    public void failedDeliveryIsNotRememberedAsDuplicate() {
+        MatrixPushRequest.Device device = new MatrixPushRequest.Device();
+        device.pushkey = "xiaomi:vendor-token";
+        pushService.failure = new IllegalStateException("provider unavailable");
+
+        try {
+            controller.notify(createRequest(device));
+        } catch (ResponseStatusException ignored) {
+            // Expected: the first provider attempt fails and must remain retryable.
+        }
+        pushService.failure = null;
+        controller.notify(createRequest(device));
+
+        assertEquals(1, pushService.messages.size());
     }
 
     @Test
