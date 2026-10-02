@@ -90,7 +90,7 @@ public class VivoPush {
         if (pushMessage.isMatrixDataOnly()) {
             // vPush server SDK 3.3 only exposes notification Message APIs. Keep Matrix
             // event metadata and content out of the provider-visible fallback.
-            title = StringUtils.isEmpty(pushMessage.senderName) ? "Element" : pushMessage.senderName;
+            title = "Element";
             body = "你收到一条新消息";
         } else {
             String[] arr = Utility.getPushTitleAndContent(pushMessage);

@@ -81,7 +81,7 @@ public class OppoPush {
         if (pushMessage.isMatrixDataOnly()) {
             // The vendored OPPO server SDK only exposes notification endpoints. Never place
             // Matrix event data or message content into that notification fallback.
-            title = StringUtils.isEmpty(pushMessage.senderName) ? "Element" : pushMessage.senderName;
+            title = "Element";
             body = "你收到一条新消息";
         } else {
             String[] arr = Utility.getPushTitleAndContent(pushMessage);

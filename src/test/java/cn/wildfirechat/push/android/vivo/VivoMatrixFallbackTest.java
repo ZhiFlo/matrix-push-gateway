@@ -27,7 +27,7 @@ public class VivoMatrixFallbackTest {
     private PushMessage matrixMessage() {
         PushMessage message = new PushMessage();
         message.setMatrixDataOnly(true);
-        message.setSenderName("Element");
+        message.setSenderName("Alice SHOULD-NOT-LEAK");
         message.setPushContent("SHOULD-NOT-LEAK");
         message.setPushData("{\"event_id\":\"$event\",\"room_id\":\"!room\",\"cs\":\"client-secret\"}");
         return message;
