@@ -52,6 +52,9 @@ public class OppoPush {
             return;
         }
 
+        if (pushMessage.isMatrixDataOnly()) {
+            LOG.debug("OPPO server SDK has no transparent-message API; using privacy-safe Matrix fallback notification");
+        }
         Notification notification = getNotification(pushMessage);
         Target target = Target.build(pushMessage.deviceToken);
         Result result = mSender.unicastNotification(notification, target);
@@ -63,7 +66,7 @@ public class OppoPush {
                 + " Reason: " + result.getReason());
     }
 
-    private Notification getNotification(PushMessage pushMessage) {
+    Notification getNotification(PushMessage pushMessage) {
         if (pushMessage.isHiddenDetail) {
             pushMessage.pushContent = "您收到一条新消息";
         }
@@ -73,9 +76,18 @@ public class OppoPush {
         /**
          * 以下参数必填项
         */
-        String[] arr = Utility.getPushTitleAndContent(pushMessage);
-        String title = arr[0];
-        String body = arr[1];
+        String title;
+        String body;
+        if (pushMessage.isMatrixDataOnly()) {
+            // The vendored OPPO server SDK only exposes notification endpoints. Never place
+            // Matrix event data or message content into that notification fallback.
+            title = StringUtils.isEmpty(pushMessage.senderName) ? "Element" : pushMessage.senderName;
+            body = "你收到一条新消息";
+        } else {
+            String[] arr = Utility.getPushTitleAndContent(pushMessage);
+            title = arr[0];
+            body = arr[1];
+        }
         if(body != null && body.length() > OPPO_PUSH_MAX_CONTENT) {
             body = body.substring(0, OPPO_PUSH_MAX_CONTENT-3);
             body += "...";

@@ -71,12 +71,32 @@ public class VivoPush {
             }
         }
 
-        String[] arr = Utility.getPushTitleAndContent(pushMessage);
-        String title = arr[0];
-        String body = arr[1];
-
         Sender senderMessage = new Sender(mConfig.getAppSecret());
         senderMessage.setAuthToken(authToken);
+
+        Result resultMessage = senderMessage.sendSingle(buildMessage(pushMessage, regId));
+        if (resultMessage.getResult() != 0) {
+            throw new RuntimeException("Vivo push failed: " + resultMessage.getResult() + " - " + resultMessage.getDesc());
+        }
+        LOG.info("Vivo push response: [MessageId={}] [ErrorCode={}] [Reason={}]",
+                resultMessage.getTaskId(),
+                resultMessage.getResult(),
+                resultMessage.getDesc());
+    }
+
+    Message buildMessage(PushMessage pushMessage, String regId) {
+        String title;
+        String body;
+        if (pushMessage.isMatrixDataOnly()) {
+            // vPush server SDK 3.3 only exposes notification Message APIs. Keep Matrix
+            // event metadata and content out of the provider-visible fallback.
+            title = StringUtils.isEmpty(pushMessage.senderName) ? "Element" : pushMessage.senderName;
+            body = "你收到一条新消息";
+        } else {
+            String[] arr = Utility.getPushTitleAndContent(pushMessage);
+            title = arr[0];
+            body = arr[1];
+        }
 
         Message.Builder builder = new Message.Builder()
                 .regId(regId)
@@ -99,14 +119,7 @@ public class VivoPush {
             builder.timeToLive(10 * 60);
         }
 
-        Result resultMessage = senderMessage.sendSingle(builder.build());
-        if (resultMessage.getResult() != 0) {
-            throw new RuntimeException("Vivo push failed: " + resultMessage.getResult() + " - " + resultMessage.getDesc());
-        }
-        LOG.info("Vivo push response: [MessageId={}] [ErrorCode={}] [Reason={}]",
-                resultMessage.getTaskId(),
-                resultMessage.getResult(),
-                resultMessage.getDesc());
+        return builder.build();
     }
 
     // 新增的token刷新方法（需根据示例代码实现）
