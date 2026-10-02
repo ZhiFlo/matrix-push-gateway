@@ -35,7 +35,10 @@ public class PortAccessFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        int port = request.getServerPort();
+        // Use the local connector port rather than the externally visible
+        // Host/X-Forwarded port. Behind Docker/Nginx the latter may be 443 or
+        // an arbitrary published port, which would bypass the port ACL.
+        int port = request.getLocalPort();
         String uri = request.getRequestURI();
 
         if (port == pushPort) {

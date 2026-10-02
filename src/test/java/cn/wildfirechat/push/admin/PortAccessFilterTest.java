@@ -46,6 +46,7 @@ public class PortAccessFilterTest {
     private MockHttpServletResponse execute(int port, String uri) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServerPort(port);
+        request.setLocalPort(port);
         request.setRequestURI(uri);
         MockHttpServletResponse response = new MockHttpServletResponse();
         filter.doFilter(request, response, new MockFilterChain());
