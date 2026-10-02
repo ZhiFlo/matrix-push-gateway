@@ -136,6 +136,29 @@ public class MatrixPushControllerTest {
     }
 
     @Test
+    public void httpEndpointReturnsBadGatewayWhenProviderDispatchFails() throws Exception {
+        pushService.failure = new IllegalStateException("provider not configured");
+        String body = "{"
+                + "\"notification\":{"
+                + "\"event_id\":\"$event:example.org\","
+                + "\"room_id\":\"!room:example.org\","
+                + "\"devices\":[{"
+                + "\"app_id\":\"io.element.android.x\","
+                + "\"pushkey\":\"hms:http-token\","
+                + "\"data\":{\"default_payload\":{\"cs\":\"http-secret\"}}"
+                + "}]"
+                + "}"
+                + "}";
+
+        mockMvc.perform(
+                post("/_matrix/push/v1/notify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)
+        )
+                .andExpect(status().isBadGateway());
+    }
+
+    @Test
     public void matrixPushKeyParsesAllElementChinaProviders() {
         assertPushKey("hms:huawei-token", AndroidPushType.ANDROID_PUSH_TYPE_HUAWEI, "huawei-token");
         assertPushKey("honor:honor-token", AndroidPushType.ANDROID_PUSH_TYPE_HONOR, "honor-token");
@@ -175,9 +198,13 @@ public class MatrixPushControllerTest {
 
     private static final class CapturingAndroidPushService implements AndroidPushService {
         private final List<PushMessage> messages = new ArrayList<>();
+        private RuntimeException failure;
 
         @Override
         public Object push(PushMessage pushMessage) {
+            if (failure != null) {
+                throw failure;
+            }
             messages.add(pushMessage);
             return null;
         }
